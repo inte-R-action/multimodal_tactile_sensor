@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>icm_tactile_sensor</name>
+  <name>multimodal_tactile_sensor</name>
   <version>0.1.0</version>
-  <description>The icm tactile package</description>
+  <description>The multimodal_tactile_sensor package</description>
   <license>BSD</license>
 
   <author email="u.martinez@bath.ac.uk">Uriel Martinez-Hernandez</author>

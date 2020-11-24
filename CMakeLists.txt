@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(icm_tactile_sensor)
+project(multimodal_tactile_sensor)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
@@ -133,7 +133,7 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES visuo_tactile
+#  LIBRARIES multimodal_tactile_sensor
   CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
 #  DEPENDS system_lib
 )
@@ -177,7 +177,7 @@ link_directories(${catkin_LIBRARY_DIRS})
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/visuo_tactile.cpp
+#   src/${PROJECT_NAME}/multimodal_tactile_sensor.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -188,7 +188,7 @@ link_directories(${catkin_LIBRARY_DIRS})
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-#add_executable(${PROJECT_NAME} src/visuo_tactile.cpp)
+#add_executable(${PROJECT_NAME} src/multimodal_tactile_sensor.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -253,7 +253,7 @@ link_directories(${catkin_LIBRARY_DIRS})
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_visuo_tactile.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/multimodal_tactile_sensor.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
@@ -262,5 +262,8 @@ link_directories(${catkin_LIBRARY_DIRS})
 # catkin_add_nosetests(test)
 
 #add_subdirectory(interactivity)
+#add_subdirectory(icm_tactile_sensor)
+add_subdirectory(hand_gesture_control)
 add_subdirectory(icm_tactile_sensor_position)
 add_subdirectory(icm_tactile_sensor_force)
+

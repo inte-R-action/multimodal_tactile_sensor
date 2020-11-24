@@ -46,7 +46,7 @@ void gestureCallback(const std_msgs::String::ConstPtr& msg)
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "demo_hand_gesture_control");
+    ros::init(argc, argv, "hand_gesture_control");
     ros::NodeHandle node_handle;
     ros::AsyncSpinner spinner(1);
     spinner.start();

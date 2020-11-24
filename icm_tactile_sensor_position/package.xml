@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>hand_gesture_control</name>
+  <name>icm_tactile_sensor_position</name>
   <version>0.1.0</version>
-  <description>The hand_gesture_control package</description>
+  <description>The icm_tactile_sensor_position package</description>
   <license>BSD</license>
 
   <author email="u.martinez@bath.ac.uk">Uriel Martinez-Hernandez</author>
