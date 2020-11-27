@@ -27,6 +27,8 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "std_msgs/Float32.h"
+#include "geometry_msgs/Vector3.h"
+#include "multimodal_tactile_sensor/icmDataMsg.h"
 #include <fstream>
 
 using namespace std;
@@ -36,30 +38,107 @@ bool ready_to_write = false;
 
 
 
-ofstream myfile;
+ofstream myfilePressure;
+ofstream myfileLoadCell;
+ofstream myfileTemperature;
+ofstream myfileKalmanX;
+ofstream myfileKalmanY;
+ofstream myfileAccelerometer;
+ofstream myfileGyro;
+
+//ofstream myTextFile;
 
 
-void sensorDataCallback(const std_msgs::Float32::ConstPtr& msg)
+void pressureCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-  ROS_INFO("I heard: [%f]", msg->data);
+//  ROS_INFO("I heard: [%f]", msg->data);
 
 	if( ready_to_write  == true )
-		myfile << msg->data << "\n";
+		myfilePressure << msg->data << "\n";
 }
 
+void loadCellCallback(const std_msgs::Float32::ConstPtr& msg)
+{
+//	ROS_INFO("Load Cell data received: [%f]", msg->data);
+	if( ready_to_write  == true )
+		myfileLoadCell << msg->data << "\n";
+}
+
+void temperatureCallback(const std_msgs::Float32::ConstPtr& msg)
+{
+//  ROS_INFO("I heard: [%f]", msg->data);
+
+	if( ready_to_write  == true )
+		myfileTemperature << msg->data << "\n";
+}
+
+void kalmanXCallback(const std_msgs::Float32::ConstPtr& msg)
+{
+//  ROS_INFO("I heard: [%f]", msg->data);
+
+	if( ready_to_write  == true )
+		myfileKalmanX << msg->data << "\n";
+}
+
+void kalmanYCallback(const std_msgs::Float32::ConstPtr& msg)
+{
+//  ROS_INFO("I heard: [%f]", msg->data);
+
+	if( ready_to_write  == true )
+		myfileKalmanY << msg->data << "\n";
+}
+
+void accelerometerCallback(const geometry_msgs::Vector3::ConstPtr& msg)
+{
+//  ROS_INFO("I heard: [%f]", msg->data);
+
+	if( ready_to_write  == true )
+		myfileAccelerometer << msg->x << "\t" << msg->y << "\t" << msg->z << "\n";
+}
+
+void gyroCallback(const geometry_msgs::Vector3::ConstPtr& msg)
+{
+//  ROS_INFO("I heard: [%f]", msg->data);
+
+	if( ready_to_write  == true )
+		myfileGyro << msg->x << "\t" << msg->y << "\t" << msg->z << "\n";
+}
+
+/*
+void icmSensorDataCallback(const multimodal_tactile_sensor::icmDataMsg::ConstPtr& msg)
+{
+//  ROS_INFO("I heard: [%f]", msg->data);
+
+    if( ready_to_write  == true )
+        myTextFile << msg->pressure << "\t" << msg->loadCell << "\t" << msg->temperature << "\t" << msg->kalmanX << "\t" << msg->kalmanY << "\t" << msg->kalmanY << "\t" << msg->accelX <<  "\t" << msg->accelY <<  "\t" << msg->accelZ <<  "\t" << msg->gyroX <<  "\t" << msg->gyroY <<  "\t" << msg->gyroZ << "\n";
+}
+*/
 
 int main(int argc, char** argv)
 {
 
-   if( argc < 3 )
+   if( argc < 5 )
+   {
         std::cout << "ERROR: missing input parameters" << std::endl;
+
+        cout << "Expecting input parameters" << endl;
+        cout << "1: folder path (string)" << endl;
+        cout << "2: experiment number (string)" << endl;
+        cout << "3: number of rows (int)" << endl;
+        cout << "4: number of columns (int)" << endl;
+        cout << "5: touch increment value (float)" << endl;
+   }
     else
     {
 
-    std::string folderPath = argv[1];       // folder to store the images
-    std::string expNumber = argv[2];      // name of object
-    int numOfRows = std::stoi(argv[3]);		 
-    int numOfColumns = std::stoi(argv[4]); 
+    	// List of input parametera
+    std::string folderPath = argv[1];			// folder to store the data
+    std::string expNumber = argv[2];			// experiment number
+    int numOfRows = std::stoi(argv[3]);			// number of rows (large side)
+    int numOfColumns = std::stoi(argv[4]); 		// number of columns (short side)
+    float touchInc = std::stof(argv[5])/1000;			// touch increment value divided by 1000 to scale it to millimeters
+
+    //float touchInc = 0;
 
     ros::init(argc, argv, "icm_tactile_sensor_position");
     ros::NodeHandle node_handle;
@@ -67,8 +146,16 @@ int main(int argc, char** argv)
     spinner.start();
 
 
-	ros::Subscriber sub = node_handle.subscribe("pressure", 1000, sensorDataCallback);
+	ros::Subscriber subPressure = node_handle.subscribe("pressure", 1000, pressureCallback);
+	ros::Subscriber subLoadCell = node_handle.subscribe("load_cell", 1000, loadCellCallback);
+	ros::Subscriber subTemperature = node_handle.subscribe("temperature", 1000, temperatureCallback);
+	ros::Subscriber subKalmanX = node_handle.subscribe("kalmanX", 1000, kalmanXCallback);
+	ros::Subscriber subKalmanY = node_handle.subscribe("kalmanY", 1000, kalmanYCallback);
+	ros::Subscriber subAccelerometer = node_handle.subscribe("acc", 1000, accelerometerCallback);
+	ros::Subscriber subGyro = node_handle.subscribe("gyro", 1000, gyroCallback);
 
+
+//    ros::Subscriber subicmSensorData = node_handle.subscribe("icmSensorData", 1000, icmSensorDataCallback);
 
 //	ros::spin();
 
@@ -180,12 +267,12 @@ int main(int argc, char** argv)
     // Begin
 
     std::map<std::string, double> targetJoints;
-    targetJoints["shoulder_pan_joint"] = -0.0;
-    targetJoints["shoulder_lift_joint"] = -1.56;
-    targetJoints["elbow_joint"] = -0.02;
-    targetJoints["wrist_1_joint"] = -1.57;
-    targetJoints["wrist_2_joint"] = -1.51;
-    targetJoints["wrist_3_joint"] = 0.1;  
+    targetJoints["shoulder_pan_joint"] = -0.007;
+    targetJoints["shoulder_lift_joint"] = -0.6239;
+    targetJoints["elbow_joint"] = 0.1298;
+    targetJoints["wrist_1_joint"] = -1.1112;
+    targetJoints["wrist_2_joint"] = -1.6748;
+    targetJoints["wrist_3_joint"] = 0.1038; 
 
     move_group.setJointValueTarget(targetJoints);
 
@@ -220,13 +307,13 @@ int main(int argc, char** argv)
     targetJoints.clear();
 
 
-    // touch on the silicon
-    targetJoints["shoulder_pan_joint"] = -0.0;
-    targetJoints["shoulder_lift_joint"] = -0.369;
-    targetJoints["elbow_joint"] = 0.607;
-    targetJoints["wrist_1_joint"] = -1.794;
-    targetJoints["wrist_2_joint"] = -1.549;
-    targetJoints["wrist_3_joint"] = 0.100;
+    // home touch position (converts input from degrees to radians)
+    targetJoints["shoulder_pan_joint"] = 0.35*3.1416/180;	// (deg*PI/180)
+    targetJoints["shoulder_lift_joint"] = -14.82*3.1416/180;
+    targetJoints["elbow_joint"] = 37.41*3.1416/180;
+    targetJoints["wrist_1_joint"] = -114.01*3.1416/180;
+    targetJoints["wrist_2_joint"] = -90*3.1416/180;
+    targetJoints["wrist_3_joint"] = 5.78*3.1416/180;
 
     // touch on the PCB
     move_group.setJointValueTarget(targetJoints);
@@ -298,7 +385,8 @@ int main(int argc, char** argv)
 
 
     float robotStep = 0.001;	// 1mm
-    float robotTouchZ = 0.015;	// 10mm it was 16mm (0.016)
+//    float robotTouchZ = 0.015 + touchInc;	// 10mm it was 16mm (0.016)
+    float robotTouchZ = 0.0 + touchInc;	// 10mm it was 16mm (0.016)
 
     // touch on the silicon
     float xPosition [3] = { 0.0, 0.0, -robotStep};
@@ -361,14 +449,23 @@ int main(int argc, char** argv)
 
     //    sleep(1);
 
-        std::cout << "DEBUG -- 2" << std::endl;
+//        std::cout << "DEBUG -- 2" << std::endl;
 
         for( int j = 0; j < numOfRows; j++)
         {
 //			myfile.open (folderPath + "/icmSensorData_exp_" + expNumber + "r" + j + "c" + k + ".txt");
-			myfile.open (folderPath + "/icmSensorData_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
+			myfilePressure.open (folderPath + "/icm_pressure_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
+			myfileTemperature.open (folderPath + "/icm_temperature_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
+			myfileLoadCell.open (folderPath + "/icm_loadcell_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
+			myfileKalmanX.open (folderPath + "/icm_kalmanx_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
+			myfileKalmanY.open (folderPath + "/icm_kalmany_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
+			myfileAccelerometer.open (folderPath + "/icm_accel_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
+			myfileGyro.open (folderPath + "/icm_gyro_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
 
-			if (myfile.is_open())
+//            myTextFile.open (folderPath + "/icm_sensor_data_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
+
+//            if (myTextFile.is_open())
+			if (myfilePressure.is_open() && myfileTemperature.is_open() && myfileLoadCell.is_open() && myfileKalmanX.is_open() && myfileKalmanX.is_open() && myfileAccelerometer.is_open() && myfileGyro.is_open())
 				ready_to_write = true;
 			else
 				cout << "Unable to open file";  	
@@ -425,14 +522,23 @@ int main(int argc, char** argv)
 
             sleep(0.5);
 
-            std::cout << "DEBUG -- 1" << std::endl;
+//            std::cout << "DEBUG -- 1" << std::endl;
 
             }
 
-			if (myfile.is_open())
+//            if (myTextFile.is_open() )
+            if (myfilePressure.is_open() && myfileTemperature.is_open() && myfileLoadCell.is_open() && myfileKalmanX.is_open() && myfileKalmanX.is_open() && myfileAccelerometer.is_open() && myfileGyro.is_open())
 			{
 	   			ready_to_write = false;
-				myfile.close();
+				myfilePressure.close();
+				myfileTemperature.close();
+				myfileLoadCell.close();
+				myfileKalmanX.close();
+				myfileKalmanY.close();
+				myfileAccelerometer.close();
+				myfileGyro.close();
+
+//                myTextFile.close();
 			}
 			else
 				cout << "Unable to close file. File was not open";

@@ -76,11 +76,10 @@ find_package(Boost REQUIRED system filesystem date_time thread)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-#add_message_files(
-#  FILES
-#  processArguments.msg
-#   Message2.msg
-#)
+add_message_files(
+  FILES
+  icmDataMsg.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(

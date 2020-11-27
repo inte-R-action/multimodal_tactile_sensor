@@ -51,4 +51,13 @@
   <run_depend>tf2_eigen</run_depend>
   <run_depend>tf2_geometry_msgs</run_depend>
 
+  <depend>multimodal_tactile_sensor/icmDataMsg</depend>
+
+  <build_depend> rosserial_arduino </build_depend>
+  <build_depend>rosserial_client </build_depend>
+  <build_export_depend>rosserial_arduino </build_export_depend>
+  <build_export_depend>rosserial_client </build_export_depend>
+  <exec_depend>rosserial_arduino </exec_depend>
+  <exec_depend>rosserial_client </exec_depend>
+
 </package>
