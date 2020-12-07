@@ -1,0 +1,7 @@
+<launch>
+	<group ns="icm_tactile_sensor_position">
+		<rosparam file="$(find multimodal_tactile_sensor)/icm_tactile_sensor_position/config/icmTactileSensorPosition.yaml" />
+	</group>
+
+	<node pkg="multimodal_tactile_sensor" type="icm_tactile_sensor_position" name="icm_tactile_sensor_position" />
+</launch>

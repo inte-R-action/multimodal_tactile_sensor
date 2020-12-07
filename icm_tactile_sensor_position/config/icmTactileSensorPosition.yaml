@@ -1,0 +1,19 @@
+# Multimodal tactile sensor
+# ICM tactile sensor position configuration file
+
+# Configuration parameters for data collection
+folder_path: "/home/bathrobot/icm_data"
+folder_name: "icm_4mm"
+experiment_number: "001"
+number_of_rows: 10
+number_of_cols: 8
+touch_depth: 8
+
+# Configuration of joint angles for home position
+# Joint angle values are in deg
+shoulder_pan_value: 0.35
+shoulder_lift_value: -14.55
+elbow_value: 37.72
+wrist_1_value: -114.58
+wrist_2_value: -89.15
+wrist_3_value: 5.78
