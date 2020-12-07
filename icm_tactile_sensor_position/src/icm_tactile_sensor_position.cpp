@@ -307,13 +307,13 @@ int main(int argc, char** argv)
 
     // home touch position (converts input from degrees to radians)
     targetJoints["shoulder_pan_joint"] = 0.35*3.1416/180;	// (deg*PI/180)
-    targetJoints["shoulder_lift_joint"] = -14.82*3.1416/180;
-    targetJoints["elbow_joint"] = 37.41*3.1416/180;
-    targetJoints["wrist_1_joint"] = -114.01*3.1416/180;
+    targetJoints["shoulder_lift_joint"] = -26.68*3.1416/180;
+    targetJoints["elbow_joint"] = 59.83*3.1416/180;
+    targetJoints["wrist_1_joint"] = -123.48*3.1416/180;
     targetJoints["wrist_2_joint"] = -90*3.1416/180;
-    targetJoints["wrist_3_joint"] = 5.78*3.1416/180;
+    targetJoints["wrist_3_joint"] = 5.76*3.1416/180;
 
-    // touch on the PCB
+    // touch on the PCB test
     move_group.setJointValueTarget(targetJoints);
 
 //    visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to visualise the planned robot movement");
