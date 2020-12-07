@@ -10,7 +10,7 @@
 #include <std_msgs/Float32.h>
 //#include <geometry_msgs/Vector3.h>
 #include <geometry_msgs/Twist.h>
-#include <multimodal_tactile_sensor/icmDataMsg.h>
+//#include <multimodal_tactile_sensor/icmDataMsg.h>
 
 #include<Wire.h>
 #include "Kalman.h" // Source: https://github.com/TKJElectronics/KalmanFilter

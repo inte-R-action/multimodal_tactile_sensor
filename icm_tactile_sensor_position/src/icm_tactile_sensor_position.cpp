@@ -33,9 +33,7 @@
 
 using namespace std;
 
-
 bool ready_to_write = false;
-
 
 
 ofstream myfilePressure;
