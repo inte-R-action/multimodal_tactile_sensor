@@ -1,0 +1,213 @@
+/******************************************************************
+  ICP10xx library is used for the TDK InvenSense ICP-101xx
+ series of barometric pressure sensors.
+
+ Kalman filter was implemented to use roll and pitch values. 
+ This code is ready to test with UR3 robot.
+ sensor2 is used now
+******************************************************************/
+#include <ros.h>
+#include <std_msgs/Float32.h>
+#include<Wire.h>
+#include "Kalman.h" // Source: https://github.com/TKJElectronics/KalmanFilter
+//#include <icp101xx.h> 
+#include <icm20789.h>
+#define RESTRICT_PITCH // Comment out to restrict roll to ±90deg instead - please read: http://www.freescale.com/files/sensors/doc/app_note/AN3461.pdf
+
+
+std_msgs::Float32 sensor1_pressure_msg;
+std_msgs::Float32 sensor2_pressure_msg;
+std_msgs::Float32 sensor3_pressure_msg;
+
+ros::Publisher pub_pressure1("pressure1", &sensor1_pressure_msg);
+ros::Publisher pub_pressure2("pressure2", &sensor2_pressure_msg);
+ros::Publisher pub_pressure3("pressure3", &sensor3_pressure_msg);
+
+ ros::NodeHandle nh;
+
+Kalman kalmanX; // Create the Kalman instances
+Kalman kalmanY;
+
+double accelX, accelY, accelZ; //strore the values read from the sensor
+double gForceX, gForceY, gForceZ; //use for the calculation of the gforce
+
+double gyroX, gyroY, gyroZ;
+double rotX, rotY, rotZ;
+
+double gyroXangle, gyroYangle; // Angle calculate using the gyro only
+double compAngleX, compAngleY; // Calculated angle using a complementary filter
+double kalAngleX, kalAngleY; // Calculated angle using a Kalman filter
+long publisher_timer;
+
+
+uint32_t timer;
+
+long int pressure;
+int temp_2;
+
+// Sensor is an ICM20789 object
+ICM20789 sensor; 
+ICM20789 sensor2; 
+ICM20789 sensor3; 
+
+#define I2C_ADDR 0x68
+#define PRE_ADDR 0x63
+#define TCAADDR 0x70 // for I2C multiplexer
+
+void tcaselect(uint8_t i) {
+  if (i > 7) return;
+ 
+  Wire.beginTransmission(TCAADDR);
+  Wire.write(1 << i);
+  Wire.endTransmission();  
+}
+
+
+void setup() {
+  Wire.begin();
+  Serial.begin(115200);  
+  tcaselect(0);
+  sensor.begin(); //force sensor
+  nh.initNode();
+  nh.advertise(pub_pressure1);
+  //sensor2.begin(); //force sensor
+ // setupICM();
+ // recordAccelRegisters();
+ // recordGyroRegisters();
+
+    tcaselect(1);
+  sensor2.begin(); //force sensor
+    nh.initNode();
+  nh.advertise(pub_pressure2);
+  //setupICM();
+  //recordAccelRegisters();
+  //recordGyroRegisters();
+
+    tcaselect(2);
+      nh.initNode();
+  nh.advertise(pub_pressure3);
+    sensor3.begin(); //force sensor
+}
+
+void loop() {
+  if (millis() > publisher_timer) {
+  tcaselect(0);
+ // recordAccelRegisters();
+ // recordGyroRegisters();
+
+//################## FORCE SENSOR #####################################
+    // Optional: Measurement mode
+    //    sensor.FAST: ~3ms
+    //    sensor.NORMAL: ~7ms (default)
+    //    sensor.ACCURATE: ~24ms
+    //    sensor.VERY_ACCURATE: ~95ms
+   // sensor.measure(sensor.FAST);
+   
+    sensor.measure(sensor.FAST);
+   Serial.print("first sensor"); Serial.print("\t"); Serial.print(sensor.getPressurePa()/1); Serial.print("\t"); 
+ // Serial.print(sensor.getTemperatureC()); Serial.print("\t");
+
+  tcaselect(1);
+  //recordAccelRegisters();
+ // recordGyroRegisters();
+  sensor2.measure(sensor2.FAST);
+ Serial.print("second sensor"); Serial.print("\t"); Serial.print(sensor2.getPressurePa()/1); Serial.print("\t");
+ //Serial.println(sensor2.getTemperatureC());
+
+ tcaselect(2);
+  sensor3.measure(sensor3.FAST);
+ Serial.print("third sensor"); Serial.print("\t"); Serial.println(sensor3.getPressurePa()/1); //Serial.print("\t");
+ //Serial.println(sensor2.getTemperatureC());
+
+ rosData();
+  }
+  nh.spinOnce();
+}
+
+void recordAccelRegisters(){
+  Wire.beginTransmission(I2C_ADDR); //I2C address of the ICM when AD0 is low
+  Wire.write(0x3B); //Starting register for accel reading
+  Wire.endTransmission();    
+  Wire.requestFrom(I2C_ADDR,6); //request accel registers, 6 registers from 3B to 40
+  while (Wire.available() < 6);
+  accelX = Wire.read()<<8|Wire.read(); //Store first two bytes into accelX
+  accelY = Wire.read()<<8|Wire.read(); //Store middle two bytes into accelY
+  accelZ = Wire.read()<<8|Wire.read(); //Store last two bytes into accelZ
+  processAccelData(); 
+    }
+
+void processAccelData(){
+  gForceX = accelX / 16384.0;  //sensitivity scale factor
+  gForceY = accelY / 16384.0;
+  gForceZ = accelZ / 16384.0;
+  }    
+
+void recordGyroRegisters(){
+  Wire.beginTransmission(I2C_ADDR); //I2C address of the ICM when AD0 is low
+  Wire.write(0x43); //Starting register for gyro reading
+  Wire.endTransmission();    
+  Wire.requestFrom(I2C_ADDR,6); //request accel registers, 6 registers from 3B to 40
+  while (Wire.available() < 6);
+  gyroX = Wire.read()<<8|Wire.read(); //Store first two bytes into gyroX
+  gyroY = Wire.read()<<8|Wire.read(); //Store middle two bytes into gyroY
+  gyroZ = Wire.read()<<8|Wire.read(); //Store last two bytes into gyroZ
+ // processGyroData(); 
+  }
+
+void processGyroData(){
+  rotX = gyroX / 131.0; //sensitivity scale factor for gyro
+  rotY = gyroY / 131.0;
+  rotZ = gyroZ / 131.0;
+  }  
+
+  void rosData() {
+    sensor1_pressure_msg.data = sensor.getPressurePa();
+    sensor2_pressure_msg.data = sensor2.getPressurePa();
+    sensor3_pressure_msg.data = sensor3.getPressurePa();
+
+    pub_pressure1.publish(&sensor1_pressure_msg);
+    pub_pressure2.publish(&sensor2_pressure_msg);
+    pub_pressure3.publish(&sensor2_pressure_msg);
+    
+    publisher_timer = millis() + 1; //publish once a second
+}
+
+  
+void printData() {
+#if 0 // Set to 1 to activate
+  
+  Serial.print(accelX); Serial.print("\t");
+  Serial.print(accelY); Serial.print("\t");
+  Serial.print(accelZ); Serial.print("\t");
+
+  Serial.print(gyroX); Serial.print("\t");
+  Serial.print(gyroY); Serial.print("\t");
+  Serial.print(gyroZ); Serial.print("\t");
+
+#endif
+
+ // Serial.print(roll); Serial.print("\t");
+//  Serial.print(gyroXangle); Serial.print("\t");
+//  Serial.print(compAngleX); Serial.print("\t");
+
+//  Serial.print("Angle_x: ");
+ // Serial.print(kalAngleX); Serial.print("\t");
+
+ // Serial.print("\t");
+//
+ // Serial.print(pitch); Serial.println("\t");
+//  Serial.print(gyroYangle); Serial.print("\t");
+//  Serial.print(compAngleY); Serial.print("\t");
+
+//  Serial.print("\t\t\tAngle_y: ");
+
+ // Serial.print(kalAngleY); Serial.print("\t");
+  
+//  Serial.print("\t");
+//  Serial.print("\t\t\tPressure: ");
+
+ // Serial.print(sensor2.getPressurePa()/1000); Serial.print("\t");
+  //Serial.println(sensor2.getTemperatureC());
+
+  
+}
