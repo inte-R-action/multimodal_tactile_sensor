@@ -9,4 +9,11 @@ float32 accelZ
 float32 gyroX
 float32 gyroY
 float32 gyroZ
-
+float32 Fx
+float32 Fy
+float32 Fz
+float32 Mx
+float32 My
+float32 Mz
+float32 distance
+float32 gesture

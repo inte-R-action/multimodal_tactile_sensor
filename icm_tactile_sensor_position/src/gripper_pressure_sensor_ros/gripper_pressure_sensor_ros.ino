@@ -8,17 +8,27 @@
 ******************************************************************/
 #include <ros.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Bool.h>
+//#include <geometry_msgs/Vector3.h>
+#include <geometry_msgs/Twist.h>
+
 #include<Wire.h>
-#include "Kalman.h" // Source: https://github.com/TKJElectronics/KalmanFilter
 #include <icp101xx.h> 
 
 //Set up the ros node and publisher
-std_msgs::Float32 pressure_msg;
-ros::Publisher pub_pressure("pressure", &pressure_msg);
-ros::NodeHandle nh;
 
-//long int pressure;
-//int temp_2;
+   std_msgs::Bool pressure_msg;
+   std_msgs::Float32 pressure_value_msg;
+
+   ros::Publisher pub_arduino("pressure", &pressure_msg);   
+   ros::Publisher pub_arduino_pressure_value("pressure_value", &pressure_value_msg);   
+   ros::NodeHandle nh;
+
+bool pressed=false, ref_val=false;
+float Last_val[2];
+float base_val;
+
+int temp_2;
 
 // Sensor is an ICP101xx object
 ICP101xx sensor;
@@ -29,31 +39,47 @@ ICP101xx sensor;
 
 void setup() {
 sensor.begin(); //force sensor
+Serial.begin(115200);
+//while (! Serial); // Wait untilSerial is ready 
 Wire.begin();
 nh.initNode();
-nh.advertise(pub_pressure);
-//TWBR = ((F_CPU / 400000L) - 16) / 2; // Set I2C frequency to 400kHz
+nh.advertise(pub_arduino);
+nh.advertise(pub_arduino_pressure_value);
 setupICM();
+
+
 }
 
 long publisher_timer;
 
 void loop() {
-if (millis() > publisher_timer) {
-  
+
 //################## FORCE SENSOR #####################################
     // Optional: Measurement mode
     //    sensor.FAST: ~3ms
     //    sensor.NORMAL: ~7ms (default)
     //    sensor.ACCURATE: ~24ms
     //    sensor.VERY_ACCURATE: ~95ms
-    sensor.measure(sensor.NORMAL);
-    pressure_msg.data  = sensor.getPressurePa()/1000;
-    pub_pressure.publish(&pressure_msg);
+    sensor.measure(sensor.FAST);
+    
+    if (ref_val == false){
+          base_val = sensor.getPressurePa()/10;
+          ref_val = true;
+      }
 
-    publisher_timer = millis() + 10; //publish once a second
+       Last_val[1] = sensor.getPressurePa()/10;
+   if (abs(base_val - Last_val[1]) > 20)
+        pressed = true;
+        else
+        pressed = false;
+        
+    rosData();
 
-}
+ /* Print Data */  
+ // printData();
+  //delay(2);
+    //}
+ // }
 
 nh.spinOnce();
 }
@@ -85,5 +111,20 @@ void setupICM(){
   Wire.write(0x00); //Setting I2C_MST_EN (I2C_IF_DIS) to 0
   Wire.endTransmission(); 
 
- delay(100); // Wait for sensor to stabilize
+ delay(10); // Wait for sensor to stabilize
   }
+ 
+
+void rosData() {
+    pressure_msg.data  = pressed;
+    pub_arduino.publish(&pressure_msg);
+    pressure_value_msg.data = sensor.getPressurePa()/10;
+    pub_arduino_pressure_value.publish(&pressure_value_msg);    
+    publisher_timer = millis() + 10; //publish once a second
+}
+  
+void printData() {
+  Serial.print(sensor.getPressurePa()/1000); Serial.print(";");
+  Serial.println(sensor.getTemperatureC());
+  
+}

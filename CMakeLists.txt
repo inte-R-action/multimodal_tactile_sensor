@@ -39,6 +39,9 @@ find_package(catkin REQUIRED
     rospy
     std_msgs
     message_generation
+    ur_controllers
+    ur_robot_driver
+    ur_client_library
 )
 
 ## System dependencies are found with CMake's conventions
@@ -78,15 +81,14 @@ find_package(Boost REQUIRED system filesystem date_time thread)
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  icmDataMsg.msg
+  icmDataMsg.msg 
 )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
+#add_service_files(
 #   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+#   SetSpeedSliderFraction.srv  
+#)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -262,7 +264,14 @@ link_directories(${catkin_LIBRARY_DIRS})
 
 #add_subdirectory(interactivity)
 #add_subdirectory(icm_tactile_sensor)
+
 add_subdirectory(hand_gesture_control)
 add_subdirectory(icm_tactile_sensor_position)
 add_subdirectory(icm_tactile_sensor_force)
-
+add_subdirectory(icm_tactile_sensor_repetability)
+add_subdirectory(icm_tactile_sensor_air)
+add_subdirectory(gesture_proximity_sensors)
+add_subdirectory(icm_tactile_sensor_CNN)
+add_subdirectory(icm_tactile_sensor_CNN_experiment)
+add_subdirectory(velocity_control)
+add_subdirectory(speed_control)

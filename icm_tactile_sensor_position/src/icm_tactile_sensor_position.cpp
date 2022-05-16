@@ -31,11 +31,14 @@
 #include "multimodal_tactile_sensor/icmDataMsg.h"
 #include <fstream>
 
+#include <sstream>
+
+#include "robotiq_ft_sensor/ft_sensor.h"
+#include "robotiq_ft_sensor/sensor_accessor.h"
+
 using namespace std;
 
-
 bool ready_to_write = false;
-
 
 
 ofstream myfilePressure;
@@ -45,6 +48,8 @@ ofstream myfileKalmanX;
 ofstream myfileKalmanY;
 ofstream myfileAccelerometer;
 ofstream myfileGyro;
+ofstream myfileForceTorque;
+ofstream myfilerobotposz;
 
 //ofstream myTextFile;
 
@@ -57,12 +62,12 @@ void pressureCallback(const std_msgs::Float32::ConstPtr& msg)
 		myfilePressure << msg->data << "\n";
 }
 
-void loadCellCallback(const std_msgs::Float32::ConstPtr& msg)
-{
+//void loadCellCallback(const std_msgs::Float32::ConstPtr& msg)
+//{
 //	ROS_INFO("Load Cell data received: [%f]", msg->data);
-	if( ready_to_write  == true )
-		myfileLoadCell << msg->data << "\n";
-}
+	//if( ready_to_write  == true )
+	//	myfileLoadCell << msg->data << "\n";
+//}
 
 void temperatureCallback(const std_msgs::Float32::ConstPtr& msg)
 {
@@ -104,6 +109,20 @@ void gyroCallback(const geometry_msgs::Vector3::ConstPtr& msg)
 		myfileGyro << msg->x << "\t" << msg->y << "\t" << msg->z << "\n";
 }
 
+void ft_sensor_Callback(const robotiq_ft_sensor::ft_sensor& msg)
+{
+//	ROS_INFO("I heard: FX[%f] FY[%f] FZ[%f] MX[%f] MY[%f] MZ[%f]", msg.Fx,msg.Fy,msg.Fz,msg.Mx,msg.My,msg.Mz);
+    	if( ready_to_write  == true )
+		myfileForceTorque << msg.Fx << "\t" << msg.Fy << "\t" << msg.Fz << "\t" << msg.Mx<< "\t" << msg.My << "\t" << msg.Mz << "\n";
+}
+
+//void ft_robotpos_Callback(const std::string _folderPath)
+//{
+    //   if( ready_to_write  == true )
+  //     myfilerobotposz << target_pose3.position << "\n";
+//}
+
+
 /*
 void icmSensorDataCallback(const multimodal_tactile_sensor::icmDataMsg::ConstPtr& msg)
 {
@@ -117,7 +136,7 @@ void icmSensorDataCallback(const multimodal_tactile_sensor::icmDataMsg::ConstPtr
 int main(int argc, char** argv)
 {
 
-/*   if( argc < 5 )
+   if( argc < 5 )
    {
         std::cout << "ERROR: missing input parameters" << std::endl;
 
@@ -128,24 +147,15 @@ int main(int argc, char** argv)
         cout << "4: number of columns (int)" << endl;
         cout << "5: touch increment value (float)" << endl;
    }
-*/
-//    else
-//    {
+    else
+    {
 
     	// List of input parametera
-/*    std::string folderPath = argv[1];			// folder to store the data
-    std::string folderName = argv[2];			// experiment number
+    std::string folderPath = argv[1];			// folder to store the data
     std::string expNumber = argv[2];			// experiment number
     int numOfRows = std::stoi(argv[3]);			// number of rows (large side)
     int numOfColumns = std::stoi(argv[4]); 		// number of columns (short side)
     float touchInc = std::stof(argv[5])/1000;			// touch increment value divided by 1000 to scale it to millimeters
-*/
-    std::string folderPath;			// folder to store the data
-    std::string folderName;			// experiment number
-    std::string expNumber;			// experiment number
-    int numOfRows;			// number of rows (large side)
-    int numOfColumns; 		// number of columns (short side)
-    float touchInc;			// touch increment value divided by 1000 to scale it to millimeters
 
     //float touchInc = 0;
 
@@ -155,26 +165,18 @@ int main(int argc, char** argv)
     spinner.start();
 
 
-    node_handle.getParam("icm_tactile_sensor_position/folder_path", folderPath);
-    node_handle.getParam("icm_tactile_sensor_position/folder_name", folderName);
-    node_handle.getParam("icm_tactile_sensor_position/experiment_number", expNumber);
-    node_handle.getParam("icm_tactile_sensor_position/number_of_rows", numOfRows);
-    node_handle.getParam("icm_tactile_sensor_position/number_of_cols", numOfColumns);
-    node_handle.getParam("icm_tactile_sensor_position/touch_depth", touchInc);
-
-    touchInc = touchInc / 1000.0;
-
-
-    cout << "Folder path: " << folderPath << endl;
-
 	ros::Subscriber subPressure = node_handle.subscribe("pressure", 1000, pressureCallback);
-	ros::Subscriber subLoadCell = node_handle.subscribe("load_cell", 1000, loadCellCallback);
+	//ros::Subscriber subLoadCell = node_handle.subscribe("load_cell", 1000, loadCellCallback);
 	ros::Subscriber subTemperature = node_handle.subscribe("temperature", 1000, temperatureCallback);
 	ros::Subscriber subKalmanX = node_handle.subscribe("kalmanX", 1000, kalmanXCallback);
 	ros::Subscriber subKalmanY = node_handle.subscribe("kalmanY", 1000, kalmanYCallback);
 	ros::Subscriber subAccelerometer = node_handle.subscribe("acc", 1000, accelerometerCallback);
 	ros::Subscriber subGyro = node_handle.subscribe("gyro", 1000, gyroCallback);
-
+    
+    ros::ServiceClient client = node_handle.serviceClient<robotiq_ft_sensor::sensor_accessor>("robotiq_ft_sensor_acc");
+    ros::Subscriber sub1 = node_handle.subscribe("robotiq_ft_sensor",1000,ft_sensor_Callback);
+    
+     robotiq_ft_sensor::sensor_accessor srv;    
 
 //    ros::Subscriber subicmSensorData = node_handle.subscribe("icmSensorData", 1000, icmSensorDataCallback);
 
@@ -288,12 +290,12 @@ int main(int argc, char** argv)
     // Begin
 
     std::map<std::string, double> targetJoints;
-    targetJoints["shoulder_pan_joint"] = -0.007;
-    targetJoints["shoulder_lift_joint"] = -0.6239;
-    targetJoints["elbow_joint"] = 0.1298;
-    targetJoints["wrist_1_joint"] = -1.1112;
-    targetJoints["wrist_2_joint"] = -1.6748;
-    targetJoints["wrist_3_joint"] = 0.1038; 
+    targetJoints["shoulder_pan_joint"] = -0.74*3.1416/180;
+    targetJoints["shoulder_lift_joint"] = -27.84*3.1416/180;
+    targetJoints["elbow_joint"] = 38.3*3.1416/180;
+    targetJoints["wrist_1_joint"] = -101.58*3.1416/180;
+    targetJoints["wrist_2_joint"] = -89.71*3.1416/180;
+    targetJoints["wrist_3_joint"] = 0.26*3.1416/180; 
 
     move_group.setJointValueTarget(targetJoints);
 
@@ -328,40 +330,22 @@ int main(int argc, char** argv)
     targetJoints.clear();
 
 
-    double shoulder_pan_value;
-    double shoulder_lift_value;
-    double elbow_value;
-    double wrist_1_value;
-    double wrist_2_value;
-    double wrist_3_value;
-
-    node_handle.getParam("icm_tactile_sensor_position/shoulder_pan_value", shoulder_pan_value);
-    node_handle.getParam("icm_tactile_sensor_position/shoulder_lift_value", shoulder_lift_value);
-    node_handle.getParam("icm_tactile_sensor_position/elbow_value", elbow_value);
-    node_handle.getParam("icm_tactile_sensor_position/wrist_1_value", wrist_1_value);
-    node_handle.getParam("icm_tactile_sensor_position/wrist_2_value", wrist_2_value);
-    node_handle.getParam("icm_tactile_sensor_position/wrist_3_value", wrist_3_value);
-
-
     // home touch position (converts input from degrees to radians)
-    targetJoints["shoulder_pan_joint"] = shoulder_pan_value * 3.1416 / 180;	// (deg*PI/180)
-    targetJoints["shoulder_lift_joint"] = shoulder_lift_value * 3.1416 / 180;
-    targetJoints["elbow_joint"] = elbow_value * 3.1416 / 180;
-    targetJoints["wrist_1_joint"] = wrist_1_value * 3.1416 / 180;
-    targetJoints["wrist_2_joint"] = wrist_2_value * 3.1416 / 180;
-    targetJoints["wrist_3_joint"] = wrist_3_value * 3.1416 / 180;
+  //  targetJoints["shoulder_pan_joint"] = -9.31*3.1416/180;	// (deg*PI/180)
+   // targetJoints["shoulder_lift_joint"] = -25.13*3.1416/180;
+   // targetJoints["elbow_joint"] = 44.10*3.1416/180;
+  //  targetJoints["wrist_1_joint"] = -108.33*3.1416/180;
+  //  targetJoints["wrist_2_joint"] = -90.09*3.1416/180;
+  //  targetJoints["wrist_3_joint"] = 0.04*3.1416/180;
 
-/*
-    // home touch position (converts input from degrees to radians)
-    targetJoints["shoulder_pan_joint"] = 0.35*3.1416/180;	// (deg*PI/180)
-    targetJoints["shoulder_lift_joint"] = -14.55*3.1416/180;
-    targetJoints["elbow_joint"] = 37.72*3.1416/180;
-    targetJoints["wrist_1_joint"] = -114.58*3.1416/180;
-    targetJoints["wrist_2_joint"] = -89.15*3.1416/180;
-    targetJoints["wrist_3_joint"] = 5.78*3.1416/180;
-*/
+    targetJoints["shoulder_pan_joint"] = -0.87*3.1416/180;	// (deg*PI/180)
+    targetJoints["shoulder_lift_joint"] = -26.02*3.1416/180;
+    targetJoints["elbow_joint"] = 41.86*3.1416/180;
+    targetJoints["wrist_1_joint"] = -107.08*3.1416/180;
+    targetJoints["wrist_2_joint"] = -89.72*3.1416/180;
+    targetJoints["wrist_3_joint"] = 0.25*3.1416/180;
 
-    // touch on the PCB
+    // touch on the PCB test
     move_group.setJointValueTarget(targetJoints);
 
 //    visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to visualise the planned robot movement");
@@ -383,7 +367,7 @@ int main(int argc, char** argv)
     // End
     //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    sleep(3);
+    sleep(1);
 
 
 
@@ -429,13 +413,13 @@ int main(int argc, char** argv)
     // When done with the path constraint be sure to clear it.
     move_group.clearPathConstraints();
 
-
     float robotStep = 0.001;	// 1mm
+    float robotStepX = 0.0010;	// 1mm
 //    float robotTouchZ = 0.015 + touchInc;	// 10mm it was 16mm (0.016)
     float robotTouchZ = 0.0 + touchInc;	// 10mm it was 16mm (0.016)
 
     // touch on the silicon
-    float xPosition [3] = { 0.0, 0.0, -robotStep};
+    float xPosition [3] = { 0.0, 0.0, -robotStepX};
     float yPosition [3] = { 0.0, 0.0,   0.0};
     float zPosition [3] = {-robotTouchZ, robotTouchZ,   0.0};
 
@@ -453,6 +437,11 @@ int main(int argc, char** argv)
 
     for( int k = 0; k < numOfColumns; k++ )
     {
+          // set force and torque values of the FT sensor 0   
+       //   srv.request.command_id = srv.request.COMMAND_SET_ZERO; 
+          //  if(client.call(srv)){
+		//	ROS_INFO("ret: %s", srv.response.res.c_str());
+		//}
 
         move_group.setStartState(*move_group.getCurrentState());
 
@@ -463,7 +452,7 @@ int main(int argc, char** argv)
         // Decrements current X position by BACKWARD_MOVE*3
 //        target_pose3.position.y = target_pose3.position.y - yHomePosition[k];
         target_pose3.position.y = target_pose3.position.y - yHomePosition;
-        yHomePosition = yHomePosition - robotStep;
+        yHomePosition = yHomePosition - robotStep - 0.0015; // Move the robot 3mm on y axis, robotStep is 1mm + 2 mm 
         waypoints.push_back(target_pose3);
 
         // We want the Cartesian path to be interpolated at a resolution of 1 cm
@@ -499,19 +488,26 @@ int main(int argc, char** argv)
 
         for( int j = 0; j < numOfRows; j++)
         {
+                    // set force and torque values of the FT sensor 0   
+          srv.request.command_id = srv.request.COMMAND_SET_ZERO; 
+            if(client.call(srv)){
+			ROS_INFO("ret: %s", srv.response.res.c_str());
+		            }
 //			myfile.open (folderPath + "/icmSensorData_exp_" + expNumber + "r" + j + "c" + k + ".txt");
-			myfilePressure.open (folderPath + "/" + folderName + "/icm_pressure_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
-			myfileTemperature.open (folderPath + "/" + folderName + "/icm_temperature_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
-			myfileLoadCell.open (folderPath + "/" + folderName + "/icm_loadcell_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
-			myfileKalmanX.open (folderPath + "/" + folderName + "/icm_kalmanx_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
-			myfileKalmanY.open (folderPath + "/" + folderName + "/icm_kalmany_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
-			myfileAccelerometer.open (folderPath + "/" + folderName + "/icm_accel_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
-			myfileGyro.open (folderPath + "/" + folderName + "/icm_gyro_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
-
+			myfilePressure.open (folderPath + "/icm_pressure_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
+			myfileTemperature.open (folderPath + "/icm_temperature_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
+			//myfileLoadCell.open (folderPath + "/icm_loadcell_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
+			myfileKalmanX.open (folderPath + "/icm_kalmanx_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
+			myfileKalmanY.open (folderPath + "/icm_kalmany_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
+			myfileAccelerometer.open (folderPath + "/icm_accel_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
+			myfileGyro.open (folderPath + "/icm_gyro_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
+            myfileForceTorque.open (folderPath + "/icm_ft_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
+            myfilerobotposz.open (folderPath + "/icm_robotpos_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
+            
 //            myTextFile.open (folderPath + "/icm_sensor_data_exp_" + expNumber + "r" + std::to_string(j) + "c" + std::to_string(k) + ".txt");
 
 //            if (myTextFile.is_open())
-			if (myfilePressure.is_open() && myfileTemperature.is_open() && myfileLoadCell.is_open() && myfileKalmanX.is_open() && myfileKalmanX.is_open() && myfileAccelerometer.is_open() && myfileGyro.is_open())
+			if (myfilePressure.is_open() && myfileTemperature.is_open() && myfileKalmanX.is_open() && myfileKalmanX.is_open() && myfileAccelerometer.is_open() && myfileGyro.is_open() && myfileForceTorque.is_open() && myfilerobotposz.is_open()) //&& myfileLoadCell.is_open() )
 				ready_to_write = true;
 			else
 				cout << "Unable to open file";  	
@@ -529,7 +525,8 @@ int main(int argc, char** argv)
             geometry_msgs::Pose target_pose3 = target_poseInit;
             // Decrements current X position by BACKWARD_MOVE*3
 //            std::cout << "[X, Y, Z] = " << xPosition[i] << ", " << yPosition[i] << ", " << zPosition[i] << std::endl;
-
+// Save robot position on z axis to observe the robot pos in each tap. 3. position in the file is the position where robot applies force to the tactile sensor
+            myfilerobotposz << -(target_pose3.position.z * 1000.0) - 188.18 << "\n";
 
             if( i == 0 )
             	target_pose3.position.z = homeZPosition.position.z;
@@ -538,6 +535,11 @@ int main(int argc, char** argv)
             target_pose3.position.y = target_pose3.position.y + yPosition[i];
             target_pose3.position.z = target_pose3.position.z + zPosition[i];
             waypoints.push_back(target_pose3);
+            
+            //std::cout << "Position [z]: " << target_pose3.position.z << std::endl;     
+            // Save robot position on z axis to observe the robot pos in each tap. 3. position in the file is the position where robot applies force to the tactile sensor
+           // myfilerobotposz << -(target_pose3.position.z * 1000.0) - 192.089 << "\n";
+          
 
             // We want the Cartesian path to be interpolated at a resolution of 1 cm
             // which is why we will specify 0.01 as the max step in Cartesian
@@ -566,25 +568,28 @@ int main(int argc, char** argv)
             // You can execute a trajectory like this.
             move_group.execute(trajectory);
 
-            sleep(0.5);
+            if ( i == 2 )
+                sleep(0.5);
+            else
+                sleep(3.0);
 
 //            std::cout << "DEBUG -- 1" << std::endl;
 
             }
 
 //            if (myTextFile.is_open() )
-            if (myfilePressure.is_open() && myfileTemperature.is_open() && myfileLoadCell.is_open() && myfileKalmanX.is_open() && myfileKalmanX.is_open() && myfileAccelerometer.is_open() && myfileGyro.is_open())
+            if (myfilePressure.is_open() && myfileTemperature.is_open() && myfileKalmanX.is_open() && myfileKalmanX.is_open() && myfileAccelerometer.is_open() && myfileGyro.is_open() && myfileForceTorque.is_open() && myfilerobotposz.is_open())// && myfileLoadCell.is_open())
 			{
 	   			ready_to_write = false;
 				myfilePressure.close();
 				myfileTemperature.close();
-				myfileLoadCell.close();
+				//myfileLoadCell.close();
 				myfileKalmanX.close();
 				myfileKalmanY.close();
 				myfileAccelerometer.close();
 				myfileGyro.close();
-
-//                myTextFile.close();
+                myfileForceTorque.close();
+                myfilerobotposz.close();
 			}
 			else
 				cout << "Unable to close file. File was not open";
@@ -594,7 +599,7 @@ int main(int argc, char** argv)
 
     ros::shutdown();
 
-//}
+}
 
     return 0;
 }

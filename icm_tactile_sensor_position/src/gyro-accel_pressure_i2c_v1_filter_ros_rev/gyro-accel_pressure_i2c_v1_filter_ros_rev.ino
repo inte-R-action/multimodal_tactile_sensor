@@ -188,12 +188,12 @@ if (millis() > publisher_timer) {
     //    sensor.NORMAL: ~7ms (default)
     //    sensor.ACCURATE: ~24ms
     //    sensor.VERY_ACCURATE: ~95ms
-    sensor.measure(sensor.FAST);
+    sensor.measure(sensor.ACCURATE);
     rosData();
 
  /* Print Data */  
- // printData();
-  //delay(2);
+   printData(); 
+  /* delay(2); */
     //}
  // }
 }
@@ -280,7 +280,7 @@ void rosData() {
     kal_Angle_X_msg.data = kalAngleX;
     kal_Angle_Y_msg.data = kalAngleY;
     temperature_msg.data = sensor.getTemperatureC();
-    pressure_msg.data  = sensor.getPressurePa()/1000;
+    pressure_msg.data  = sensor.getPressurePa()/1;
     load_cell_msg.data = output;
 
     accVec.x = accelX;
@@ -299,7 +299,7 @@ void rosData() {
     pub_acc.publish(&accVec);
     pub_gyro.publish(&gyroVec);
     
-    publisher_timer = millis() + 10; //publish once a second
+    publisher_timer = millis() + 1; //publish once a second
 }
   
 void printData() {
@@ -320,7 +320,7 @@ void printData() {
 //  Serial.print(compAngleX); Serial.print("\t");
 
 //  Serial.print("Angle_x: ");
-  Serial.print(kalAngleX); Serial.print(";");
+ // Serial.print(kalAngleX); Serial.print(";");
 
  // Serial.print("\t");
 //
@@ -330,12 +330,12 @@ void printData() {
 
 //  Serial.print("\t\t\tAngle_y: ");
 
-  Serial.print(kalAngleY); Serial.print(";");
+ // Serial.print(kalAngleY); Serial.print(";");
   
 //  Serial.print("\t");
 //  Serial.print("\t\t\tPressure: ");
 
-  Serial.print(sensor.getPressurePa()/1000); Serial.print(";");
-  Serial.println(sensor.getTemperatureC());
+  Serial.println(sensor.getPressurePa()/1); //Serial.print(";");
+ // Serial.println(sensor.getTemperatureC());
   
 }

@@ -34,6 +34,7 @@ using namespace std;
 
 bool ready_to_write = false;
 float sensorForce = 0.0;
+float temp = 0.0;
 
 
 ofstream myfile;
@@ -208,12 +209,12 @@ int main(int argc, char** argv)
 //    targetJoints["wrist_2_joint"] = -1.51;
 //    targetJoints["wrist_3_joint"] = 0.1;  
 
-    targetJoints["shoulder_pan_joint"] = -0.007;
-    targetJoints["shoulder_lift_joint"] = -0.6239;
-    targetJoints["elbow_joint"] = 0.1298;
-    targetJoints["wrist_1_joint"] = -1.1112;
-    targetJoints["wrist_2_joint"] = -1.6748;
-    targetJoints["wrist_3_joint"] = 0.1038;
+    targetJoints["shoulder_pan_joint"] = -0.74*3.1416/180;
+    targetJoints["shoulder_lift_joint"] = -27.84*3.1416/180;
+    targetJoints["elbow_joint"] = 38.3*3.1416/180;
+    targetJoints["wrist_1_joint"] = -101.58*3.1416/180;
+    targetJoints["wrist_2_joint"] = -89.71*3.1416/180;
+    targetJoints["wrist_3_joint"] = 0.26*3.1416/180; 
 
     move_group.setJointValueTarget(targetJoints);
 
@@ -249,10 +250,10 @@ int main(int argc, char** argv)
 
 
     // touch on the silicon
-    targetJoints["shoulder_pan_joint"] = 1.07*3.1416/180;
-    targetJoints["shoulder_lift_joint"] = -14.82*3.1416/180;
-    targetJoints["elbow_joint"] = 37.41*3.1416/180;
-    targetJoints["wrist_1_joint"] = -114.01*3.1416/180;
+    targetJoints["shoulder_pan_joint"] = -0.87*3.1416/180;
+    targetJoints["shoulder_lift_joint"] = -26.02*3.1416/180;
+    targetJoints["elbow_joint"] = 41.86*3.1416/180;
+    targetJoints["wrist_1_joint"] = -107.01*3.1416/180;
     targetJoints["wrist_2_joint"] = -90*3.1416/180;
     targetJoints["wrist_3_joint"] = 5.78*3.1416/180;
 /*
